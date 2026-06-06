@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DermAI — Skin Cancer Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F0F4F8;
+      --surface: #FFFFFF;
+      --surface2: #F7FAFC;
+      --border: rgba(0,0,0,0.08);
+      --accent: #00d4aa;
+      --accent2: #0099ff;
+      --text: #1A202C;
+      --muted: #4A5568;
+      --danger: #ff4757;
+      --warn: #e09304;
+      --safe: #2ed573;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BG GRID */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* GLOW ORBS */
+    .orb {
+      position: fixed; border-radius: 50%; filter: blur(120px);
+      pointer-events: none; z-index: 0; opacity: 0.15;
+    }
+    .orb-1 { width: 500px; height: 500px; background: var(--accent); top: -150px; right: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; left: -100px; }
+
+    /* LAYOUT */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* HEADER */
+    header {
+      padding: 28px 0 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .logo span { font-weight: 400; color: var(--muted); -webkit-text-fill-color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; margin-left: 12px; letter-spacing: 2px; text-transform: uppercase; }
+    .badge {
+      background: rgba(255,71,87,0.15); border: 1px solid rgba(255,71,87,0.3);
+      color: #ff8fa3; padding: 5px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* HERO */
+    .hero {
+      padding: 72px 0 56px;
+      text-align: center;
+    }
+    .hero-tag {
+      display: inline-block;
+      background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.25);
+      color: var(--accent); padding: 6px 18px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+    h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p {
+      color: var(--muted); font-size: 1.1rem; max-width: 520px; margin: 0 auto 12px; line-height: 1.7;
+    }
+    .disclaimer {
+      background: rgba(255,165,2,0.08); border: 1px solid rgba(255,165,2,0.2);
+      color: #e6ad3a; padding: 10px 20px; border-radius: 10px;
+      font-size: 0.78rem; max-width: 500px; margin: 0 auto; line-height: 1.5;
+    }
+
+    /* UPLOAD AREA */
+    .upload-section { padding: 0 0 60px; }
+
+    .upload-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 640px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .drop-zone {
+      border: 2px dashed rgba(0,212,170,0.3);
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(0,212,170,0.02);
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(0,212,170,0.06);
+      transform: scale(1.01);
+    }
+    .drop-icon {
+      width: 60px; height: 60px;
+      background: rgba(0,212,170,0.1); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 1.8rem;
+    }
+    .drop-zone h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .drop-zone p { color: var(--muted); font-size: 0.85rem; }
+    .drop-zone input[type=file] { display: none; }
+
+    .upload-btn {
+      display: block; width: 100%;
+      background: linear-gradient(135deg, var(--accent), #00b894);
+      color: #0a0c0f;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      padding: 16px 32px;
+      border: none; border-radius: 12px;
+      cursor: pointer; margin-top: 24px;
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
+      position: relative; overflow: hidden;
+    }
+    .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,212,170,0.35); }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .preview-wrap {
+      margin-top: 20px; display: none;
+      border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+    }
+    .preview-wrap img { width: 100%; height: 200px; object-fit: cover; }
+
+    /* LOADING */
+    .spinner {
+      display: none;
+      width: 40px; height: 40px;
+      border: 3px solid rgba(0,212,170,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 24px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* RESULTS */
+    .results { max-width: 800px; margin: 0 auto; display: none; }
+
+    .result-header {
+      display: flex; align-items: center; gap: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .result-img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+    .result-main h2 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+    .result-main p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    .risk-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .risk-Low    { background: rgba(46,213,115,0.15);  color: #2ed573;  border: 1px solid rgba(46,213,115,0.3);  }
+    .risk-Medium { background: rgba(255,165,2,0.15);   color: #ffa502;  border: 1px solid rgba(255,165,2,0.3);   }
+    .risk-High   { background: rgba(255,71,87,0.15);   color: #ff4757;  border: 1px solid rgba(255,71,87,0.3);   }
+
+    .confidence-bar-wrap { margin-top: 12px; }
+    .conf-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .conf-bar-bg { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .conf-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 1s ease; }
+
+    .cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media(max-width: 580px) { .cards-row { grid-template-columns: 1fr; } }
+
+    .info-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px;
+    }
+    .info-card h4 { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .info-card p  { font-size: 0.9rem; line-height: 1.6; }
+
+    .advice-card {
+      background: rgba(0,212,170,0.05);
+      border: 1px solid rgba(0,212,170,0.2);
+      border-radius: 16px; padding: 22px; margin-bottom: 20px;
+    }
+    .advice-card h4 { color: var(--accent); font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .advice-card p  { font-size: 0.92rem; line-height: 1.6; }
+
+    .prob-list { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+    .prob-list h4 { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .prob-item { margin-bottom: 14px; }
+    .prob-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; }
+    .prob-bg { background: var(--surface2); border-radius: 4px; height: 6px; }
+    .prob-fill { height: 6px; border-radius: 4px; transition: width 1s ease 0.2s; }
+
+    .reset-btn {
+      display: block; width: 100%;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+      padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+      cursor: pointer; margin-top: 20px;
+      transition: all 0.25s;
+    }
+    .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* CLASSES SECTION */
+    .classes-section { padding: 40px 0 80px; }
+    .section-title { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; margin-bottom: 24px; }
+    .classes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .class-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px;
+      border-left: 3px solid transparent;
+      transition: all 0.25s;
+    }
+    .class-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.1); }
+    .class-card h5 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+    .class-card .class-key { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .class-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border); padding: 24px 0;
+      text-align: center; color: var(--muted); font-size: 0.8rem; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+      <div class="logo">DermAI</div>
+      <div class="badge">⚠ Not Medical Advice</div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-tag">🔬 AI-Powered Dermatology Tool</div>
+      <h1>Detect <em>Skin Cancer</em><br>with Deep Learning</h1>
+      <p>Upload a dermoscopy or skin image. Our CNN model classifies it into 7 lesion categories with confidence scores.</p>
+      <br>
+      <div class="disclaimer">⚠️ This tool is for educational purposes only. Always consult a qualified dermatologist for medical diagnosis.</div>
+    </div>
+  </section>
+
+  <!-- UPLOAD -->
+  <section class="upload-section">
+    <div class="container">
+      <div class="upload-card" id="uploadCard">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">🩺</div>
+          <h3>Drop your skin image here</h3>
+          <p>JPG, PNG, BMP or WEBP · Max 10 MB</p>
+          <input type="file" id="fileInput" accept="image/*" />
+        </div>
+        <div class="preview-wrap" id="previewWrap">
+          <img id="previewImg" src="" alt="Preview" />
+        </div>
+        <div class="spinner" id="spinner"></div>
+        <button class="upload-btn" id="analyzeBtn" disabled>Analyze Image</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="upload-section" style="padding-top:0">
+    <div class="container">
+      <div class="results" id="results">
+
+        <div class="result-header">
+          <img id="resImg" class="result-img" src="" alt="Analyzed image" />
+          <div class="result-main">
+            <div class="risk-badge" id="riskBadge"></div>
+            <h2 id="resClass">—</h2>
+            <p id="resDesc">—</p>
+            <div class="confidence-bar-wrap">
+              <div class="conf-label">
+                <span>Model Confidence</span>
+                <span id="confPct">0%</span>
+              </div>
+              <div class="conf-bar-bg">
+                <div class="conf-bar" id="confBar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cards-row">
+          <div class="info-card">
+            <h4>About this condition</h4>
+            <p id="resAbout">—</p>
+          </div>
+          <div class="advice-card">
+            <h4>🩺 Recommended Action</h4>
+            <p id="resAdvice">—</p>
+          </div>
+        </div>
+
+        <div class="prob-list">
+          <h4>All class probabilities</h4>
+          <div id="probBars"></div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">← Analyze Another Image</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLASS INFO -->
+  <section class="classes-section">
+    <div class="container">
+      <div class="section-title">Detectable Conditions</div>
+      <div class="classes-grid" id="classesGrid"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>DermAI — Skin Cancer Detection</p>
+    </div>
+  </footer>
+
+  <script>
+    const CLASS_COLORS = {
+      nv:'#27ae60', mel:'#e74c3c', bkl:'#2ecc71',
+      bcc:'#e67e22', akiec:'#f39c12', vasc:'#3498db', df:'#9b59b6'
+    };
+
+    // Load classes
+    fetch('/classes').then(r => r.json()).then(data => {
+      const grid = document.getElementById('classesGrid');
+      Object.entries(data).forEach(([key, info]) => {
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        card.style.borderLeftColor = CLASS_COLORS[key] || '#555';
+        card.innerHTML = `
+          <div class="class-key">${key}</div>
+          <h5>${info.name}</h5>
+          <p>${info.description.substring(0,90)}…</p>
+        `;
+        grid.appendChild(card);
+      });
+    });
+
+    // Upload logic
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('fileInput');
+    const previewWrap= document.getElementById('previewWrap');
+    const previewImg = document.getElementById('previewImg');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const spinner    = document.getElementById('spinner');
+    const results    = document.getElementById('results');
+    const resetBtn   = document.getElementById('resetBtn');
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+    function setFile(file) {
+      selectedFile = file;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewWrap.style.display = 'block';
+      analyzeBtn.disabled = false;
+      results.style.display = 'none';
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      analyzeBtn.disabled = true;
+      spinner.style.display = 'block';
+      results.style.display = 'none';
+
+      const form = new FormData();
+      form.append('file', selectedFile);
+
+      try {
+        const res  = await fetch('/predict', { method: 'POST', body: form });
+        const data = await res.json();
+
+        if (data.error) { alert('Error: ' + data.error); return; }
+
+        // Populate results
+        document.getElementById('resImg').src    = data.thumbnail;
+        document.getElementById('resClass').textContent = data.class_info.name;
+        document.getElementById('resDesc').textContent  = data.class_info.description;
+        document.getElementById('resAbout').textContent = data.class_info.description;
+        document.getElementById('resAdvice').textContent = data.class_info.advice;
+
+        const rb = document.getElementById('riskBadge');
+        rb.textContent = '● ' + data.class_info.risk + ' Risk';
+        rb.className = 'risk-badge risk-' + data.class_info.risk;
+
+        document.getElementById('confPct').textContent = data.confidence + '%';
+        setTimeout(() => {
+          document.getElementById('confBar').style.width = data.confidence + '%';
+        }, 100);
+
+        // Prob bars
+        const pbars = document.getElementById('probBars');
+        pbars.innerHTML = '';
+        data.top3.forEach(item => {
+          const color = CLASS_COLORS[item.key] || '#888';
+          pbars.innerHTML += `
+            <div class="prob-item">
+              <div class="prob-row">
+                <span>${item.name}</span>
+                <span style="color:${color};font-weight:600">${item.prob}%</span>
+              </div>
+              <div class="prob-bg">
+                <div class="prob-fill" style="width:0%;background:${color}" data-width="${item.prob}"></div>
+              </div>
+            </div>`;
+        });
+        setTimeout(() => {
+          document.querySelectorAll('.prob-fill').forEach(el => {
+            el.style.width = el.dataset.width + '%';
+          });
+        }, 150);
+
+        spinner.style.display = 'none';
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        if (data.demo_mode) {
+          alert("ℹ️ Demo mode: predictions are random. Run train_model.py to use the real trained model.");
+        }
+      } catch(e) {
+        alert('Request failed: ' + e.message);
+      } finally {
+        spinner.style.display = 'none';
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      previewWrap.style.display = 'none';
+      analyzeBtn.disabled = true;
+      results.style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
