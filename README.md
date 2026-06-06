@@ -196,3 +196,6 @@ Always consult a qualified dermatologist for skin concerns.
 
 1. Tschandl, P., Rosendahl, C. & Kittler, H. *The HAM10000 dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions.* Sci. Data 5, 180161 (2018).
 2. Sandler, M. et al. *MobileNetV2: Inverted Residuals and Linear Bottlenecks.* CVPR (2018).
+
+
+© 2026 Shristy Goyal. All rights reserved.
